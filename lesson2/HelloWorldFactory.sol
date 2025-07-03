@@ -26,7 +26,7 @@ contract HelloWorldFactory{
        return getHelloWorld(_index).sayHello(_id);
     }
 
-    function cassSetHello(uint256 _index,uint256 _id, string memory str ) 
+    function callSetHello(uint256 _index,uint256 _id, string memory str ) 
     public{
         helleWorlds[_index].setHello(_id,str);
     }
