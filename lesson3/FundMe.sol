@@ -11,23 +11,27 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 contract FendMe{
     AggregatorV3Interface internal dataFeed;
-    uint256 constant TARGET = 1 * 1e15;
+    uint256 constant TARGET = 10 * 1e15;
     address public owner;
     mapping (address => uint256) public fundersToAmount;
     uint256 MINMUM_VALUE = 1 * 10 **15;
+    uint256 deployTimestamp;
+    uint256 lockTime;
 
 
-    constructor(){
+    constructor(uint256 _lockTime){
         owner = msg.sender;
         // sepilia testnet
         dataFeed  = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
-    
+        deployTimestamp = block.timestamp;
+        lockTime = _lockTime;
     }
 
     function fund() 
     external
     payable {
         require(msg.value >= MINMUM_VALUE,'Send more ETH');
+        require(block.timestamp < (deployTimestamp + lockTime), "window is closed");
         fundersToAmount[msg.sender]  = msg.value;
     }
 
@@ -53,8 +57,7 @@ contract FendMe{
     }
 
 
-    function getFund() external   {
-        require(msg.sender == owner, "This function can only be called by owner");
+    function getFund() external  windowClose  onlyOwner{
         require(convertEthToUsd(address(this).balance) >= TARGET, "Target is not reached");
         // payable(msg.sender).transfer(address(this).balance);
         // bool isSuccess = payable(msg.sender).send(address(this).balance);
@@ -66,22 +69,31 @@ contract FendMe{
     }
 
 
-    function transferOwnership(address newAddress)public {
-        require(msg.sender == owner, "This function can only be called by owner");
+    function transferOwnership(address newAddress)public  onlyOwner{
         owner = newAddress;
     }
 
 
 
-    function refund() external {
+    function refund() external windowClose{
         require(convertEthToUsd(address(this).balance)<=TARGET, "Target is not reached");
         require(fundersToAmount[msg.sender] != 0, "There is not fund for you");
         (bool isSuccess, )  = payable(msg.sender).call{value:fundersToAmount[msg.sender]}("");
         require(isSuccess == true, "tx failed");
         fundersToAmount[msg.sender] = 0;
+    }
 
+    
 
+    modifier windowClose (){
+        require(block.timestamp >= (deployTimestamp + lockTime), "window is closed");
+        _;
+    }
+// 1.9909
 
+    modifier onlyOwner(){
+        require(msg.sender == owner, "This function can only be called by owner");
+        _;
     }
 
 }
