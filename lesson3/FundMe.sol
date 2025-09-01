@@ -1,104 +1,86 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
+// 1、 创建一个收款函数
+// 2、 记录投资人并且查看
+// 3、 达到目标值，生产商可以提款
+// 4、 在锁定期内，没有达到目标值，投资人可以退款
 
 
-pragma solidity ^0.8.20;
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-
-contract FundMe{
-    address public owner;
+contract FendMe{
     AggregatorV3Interface internal dataFeed;
-    uint256 deploymentTimestamp;
-    uint256 lockTime;
-    mapping(address => uint256) public fundersToAmount;
-    bool public getFundSuccess = false;
-    uint256 constant MINIMUM_VALUE = 100 * 10; //USD
-    uint256 constant TARGET = 1000 * 10;
+    uint256 constant TARGET = 1000 * 1e18;
+    address public owner;
+    mapping (address => uint256) public fundersToAmount;
+    uint256 MINMUM_VALUE = 1 * 10 **15;
 
-    // 1、创建一个收款函数
-    // 2、记录投资人并且查看
-    // 3、在锁定期内，达到目标值，生产商可以提款
-    // 4、在锁定期内，没有达到目标值，投资人在锁定期以后退款
 
-    constructor(uint256 lockTime){
+    constructor(){
         owner = msg.sender;
-        deploymentTimestamp = block.timestamp;
-        lockTime = lockTime;
-    }
-
-
-    function getFund() 
-    external  
-    windowClosed 
-    onlyOwner {
-        require(convertEthToUsd(address(this).balance) >= TARGET, "Target is not reached");
-        bool success;
-        (success, )  = payable(msg.sender).call{value: address(this).balance}("");
-        require(success, "transfer tx failed");
-        // fundersToAmount[msg.sender] = msg.value;
-        getFundSuccess = true;
-    }
-
-
-
+        // sepilia testnet
+        dataFeed  = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
     
-    function fund()
+    }
+
+    function fund() 
     external
-    payable{
-        require(convertEthToUsd(msg.value) >= MINIMUM_VALUE, "Send more ETH");
-        require(block.timestamp < deploymentTimestamp + lockTime, "window is closed");
-        fundersToAmount[msg.sender] = msg.value;
-
+    payable {
+        require(msg.value >= MINMUM_VALUE,'Send more ETH');
+        fundersToAmount[msg.sender]  = msg.value;
     }
 
-    function convertEthToUsd(uint256 ethAmount)
-     internal 
-     view 
-     returns (uint256) {
-        uint256 ethPrice = uint256(getChainlinkDataFeedLatestAnswer());
-        return ethAmount * ethPrice / (1e26);
-    }
 
-    function getChainlinkDataFeedLatestAnswer()
-     public
-     view
-     returns(int){
-        ( , int256 answer, , , ) = dataFeed.latestRoundData();
+    function getChainlinkDataFeedLatestAnswer() public view returns (int) {
+        // prettier-ignore
+        (
+            /* uint80 roundId */,
+            int256 answer,
+            /*uint256 startedAt*/,
+            /*uint256 updatedAt*/,
+            /*uint80 answeredInRound*/
+        ) = dataFeed.latestRoundData();
         return answer;
     }
 
-    function transferOwnership (address newOwner) public onlyOwner {
-        owner = newOwner;
-    }
-
-    function setErc20Addr(address _erc20Addr) public onlyOwner {
-        erc20Addr = _erc20Addr;
-    }
-
-
-    function refund() external windowClosed(){
-        require(convertEthToUsd(address(this).balance) < TARGET, "Target is reached");
-        require(fundersToAmount[msg.sender]!=0, 'there is no fund for you' );
-        bool success;
-        (success, ) = payable(msg.sender).call{value: fundersToAmount[msg.sender]}("");
-        require(success, "transfer tx failed");
-        fundersToAmount[msg.sender] = 0;
-
-
-
-
+    function convertEthToUsd(uint256 ethAmount) 
+    internal
+    view
+    returns (uint256){
+        uint256 ethPrice = uint256(getChainlinkDataFeedLatestAnswer());
+        return ethAmount * ethPrice / 1e8;
     }
 
 
-    modifier  windowClosed (){
-        require((block.timestamp >= deploymentTimestamp + lockTime), "Window is not closed");
-        _;
+    function getFund() external   {
+        require(msg.sender == owner, "This function can only be called by owner");
+        require(convertEthToUsd(address(this).balance) >= TARGET, "Target is not reached");
+        // payable(msg.sender).transfer(address(this).balance);
+        // bool isSuccess = payable(msg.sender).send(address(this).balance);
+        // require(isSuccess == true, "tx failed");
+        (bool isSuccess, )  = payable(msg.sender).call{value:address(this).balance}("");
+        require(isSuccess == true, "tx failed");
+
+    }
+
+
+    function transferOwnership(address newAddress)public {
+        require(msg.sender == owner, "This function can only be called by owner");
+        owner = newAddress;
     }
 
 
 
-    modifier onlyOwner() {  
-        require(msg.sender == owner, "this function can only be called by owner");
-        _;
+    function refund() external {
+        require(convertEthToUsd(address(this).balance)<TARGET, "Target is not reached");
+        require(fundersToAmount[msg.sender] != 0, "There is not fund for you");
+        (bool isSuccess, )  = payable(msg.sender).call{value:fundersToAmount[msg.sender]}("");
+        require(isSuccess == true, "tx failed");
+
+
+
+
     }
+
 }
