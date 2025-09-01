@@ -11,7 +11,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 contract FendMe{
     AggregatorV3Interface internal dataFeed;
-    uint256 constant TARGET = 1000 * 1e18;
+    uint256 constant TARGET = 1 * 1e15;
     address public owner;
     mapping (address => uint256) public fundersToAmount;
     uint256 MINMUM_VALUE = 1 * 10 **15;
@@ -61,6 +61,7 @@ contract FendMe{
         // require(isSuccess == true, "tx failed");
         (bool isSuccess, )  = payable(msg.sender).call{value:address(this).balance}("");
         require(isSuccess == true, "tx failed");
+        fundersToAmount[msg.sender] = 0;
 
     }
 
@@ -73,11 +74,11 @@ contract FendMe{
 
 
     function refund() external {
-        require(convertEthToUsd(address(this).balance)<TARGET, "Target is not reached");
+        require(convertEthToUsd(address(this).balance)<=TARGET, "Target is not reached");
         require(fundersToAmount[msg.sender] != 0, "There is not fund for you");
         (bool isSuccess, )  = payable(msg.sender).call{value:fundersToAmount[msg.sender]}("");
         require(isSuccess == true, "tx failed");
-
+        fundersToAmount[msg.sender] = 0;
 
 
 
