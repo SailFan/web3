@@ -9,7 +9,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 
 
-contract FendMe{
+contract FundMe{
     AggregatorV3Interface internal dataFeed;
     uint256 constant TARGET = 10 * 1e15;
     address public owner;
@@ -17,6 +17,8 @@ contract FendMe{
     uint256 MINMUM_VALUE = 1 * 10 **15;
     uint256 deployTimestamp;
     uint256 lockTime;
+    address addressERC20;
+
 
 
     constructor(uint256 _lockTime){
@@ -26,6 +28,20 @@ contract FendMe{
         deployTimestamp = block.timestamp;
         lockTime = _lockTime;
     }
+
+
+    function setFunderAddress (address _erc20Address)public onlyOwner{
+        addressERC20 = _erc20Address;
+    }
+
+
+
+    function setFundMapping  (address funder, uint256 _amount) external{
+        require(msg.sender == addressERC20, "only owner");
+        fundersToAmount[funder] = _amount;
+    }
+
+
 
     function fund() 
     external
@@ -83,6 +99,8 @@ contract FendMe{
         fundersToAmount[msg.sender] = 0;
     }
 
+
+
     
 
     modifier windowClose (){
@@ -90,6 +108,7 @@ contract FendMe{
         _;
     }
 // 1.9909
+// 1.9898 
 
     modifier onlyOwner(){
         require(msg.sender == owner, "This function can only be called by owner");
