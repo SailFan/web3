@@ -8,7 +8,7 @@ ignition
 # TypeChain files
 /typechain
 /typechain-types
-
+.deps/
 # solidity-coverage files
 /coverage
 /coverage.json
