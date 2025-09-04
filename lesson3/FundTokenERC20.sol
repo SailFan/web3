@@ -14,6 +14,7 @@ contract FundTokenERC20 is ERC20 {
 
 
     function mint(uint256 amountToMint) public {
+        require(fundMe.getFundSuccess(), "The fundme is not compelted yet");
         require(fundMe.fundersToAmount(msg.sender) >= amountToMint, "you cannot mint this many tokens");
         _mint(msg.sender, amountToMint);
         fundMe.setFundMapping(msg.sender, fundMe.fundersToAmount(msg.sender) - amountToMint);
@@ -22,6 +23,7 @@ contract FundTokenERC20 is ERC20 {
 
 
     function claim(uint256 amountToClain) public {
+        require(fundMe.getFundSuccess(), "The fundme is not compelted yet");
         require(balanceOf(msg.sender) >=amountToClain, " you dont have enough ERC20 tokens" );
         _burn(msg.sender, amountToClain);
     }

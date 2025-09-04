@@ -18,6 +18,7 @@ contract FundMe{
     uint256 deployTimestamp;
     uint256 lockTime;
     address addressERC20;
+    bool public  getFundSuccess = false;
 
 
 
@@ -81,6 +82,7 @@ contract FundMe{
         (bool isSuccess, )  = payable(msg.sender).call{value:address(this).balance}("");
         require(isSuccess == true, "tx failed");
         fundersToAmount[msg.sender] = 0;
+        getFundSuccess = true;
 
     }
 
